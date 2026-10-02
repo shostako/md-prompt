@@ -78,6 +78,8 @@ const OWN_PROMPT = new Set(["composer", "bridge"])
 export const register: Register = (on, options) => {
   let mode: Mode = readMode(options.mode)
   const flags: Flags = { vba: readFlag("vba", options.vba), history: readFlag("history", options.history) }
+  let diagnose = false // `/md-prompt history debug`: a toast per drawn message, this session only
+  const diagnosed = new Set<string>()
 
   on("session.start", async ($, e, next) => {
     const r = await next(e)
@@ -96,6 +98,11 @@ export const register: Register = (on, options) => {
     const cmd = parseModeCommand(e.args, mode, flags)
     if (cmd.kind === "status") return { text: formatStatus(mode, flags) }
     if (cmd.kind === "usage") return { text: formatUsage(cmd.input) }
+    if (cmd.kind === "debug") {
+      diagnose = !diagnose
+      diagnosed.clear()
+      return { text: `history debug ${diagnose ? "on: each message drawn from now on shows a toast" : "off"}` }
+    }
     if (cmd.kind === "flag") {
       if (cmd.value === null) return { text: describeFlag(cmd.name, flags[cmd.name]) }
       flags[cmd.name] = cmd.value
@@ -122,9 +129,19 @@ export const register: Register = (on, options) => {
 
   // Fork: a sent message that holds code is drawn again as Markdown, its code highlighted the way
   // the assistant's replies are. Only the drawing changes; the stored message stays as typed.
+  // `isExpanded` is not read for the person's own prompt: the normal view draws it in full
+  // whatever that flag says (it is true only under ctrl+o / --verbose).
   on("ui.render", { component: "UserMessage" }, async ($, e, next) => {
-    if (flags.history === "off" || !e.props.isExpanded || !OWN_PROMPT.has(e.props.origin.kind)) return next(e)
-    const text = historyText(e.props.text, flags.vba)
+    const own = OWN_PROMPT.has(e.props.origin.kind)
+    const text = flags.history === "on" && own ? historyText(e.props.text, flags.vba) : null
+    if (diagnose && !diagnosed.has(e.requestId)) {
+      diagnosed.add(e.requestId)
+      const why = flags.history === "off" ? "history off" : !own ? "not your prompt" : text === null ? "no code" : "drawn as Markdown"
+      $.ui.toast(
+        `md-prompt: origin=${e.props.origin.kind} expanded=${e.props.isExpanded} chars=${e.props.text.length} → ${why}`,
+        { timeoutMs: 10_000 },
+      )
+    }
     if (text === null) return next(e)
     const { Box, Text, Markdown } = $.ui.resolve(e)
     return (

@@ -30,6 +30,7 @@ export type ModeCommand =
   | { kind: "status" }
   | { kind: "usage"; input: string }
   | { kind: "flag"; name: Flag; value: OnOff | null }
+  | { kind: "debug" }
 
 /**
  * Read the arguments of `/md-prompt`. Nothing (or `status`) asks for the state; `toggle` flips
@@ -50,6 +51,9 @@ export function parseModeCommand(args: string, current: Mode, flags: Flags = DEF
         return { kind: "flag", name, value: "off" }
       case "toggle":
         return { kind: "flag", name, value: flags[name] === "on" ? "off" : "on" }
+      case "debug":
+        // session-only: a toast per drawn message says what the history hook decided
+        return name === "history" ? { kind: "debug" } : { kind: "usage", input: word }
       default:
         return { kind: "usage", input: word }
     }

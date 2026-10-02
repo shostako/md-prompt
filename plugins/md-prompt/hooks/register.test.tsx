@@ -230,7 +230,8 @@ test('a message from Remote Control is drawn too; a notification row is not', as
   engineDraws(on)
   expect(await drawnOf($, userRow('```\nx\n```', 'bridge'))).toContain('"Markdown"')
   expect(await drawnOf($, userRow('```\nx\n```', 'task-notification'))).toContain('ENGINE')
-  expect(await drawnOf($, userRow('```\nx\n```', 'composer', false))).toContain('ENGINE')
+  // the normal view's own prompt: drawn even when not expanded (that flag is ctrl+o's)
+  expect(await drawnOf($, userRow('```\nx\n```', 'composer', false))).toContain('"Markdown"')
 })
 
 test('the history setting off keeps Claude Code drawing', { options: { history: 'off' } }, async ($, on) => {
@@ -245,4 +246,11 @@ test('/md-prompt history off writes its setting and stops at once', async ($, on
   expect(written).toEqual([{ key: 'md-prompt.history', value: 'off' }])
   expect(result.text).toContain('history off')
   expect(await drawnOf($, userRow('```\nx\n```'))).toContain('ENGINE')
+})
+
+test('/md-prompt history debug toggles a session-only diagnosis and writes nothing', async ($, on) => {
+  const written = acceptSettings(on)
+  expect((await run($, 'history debug')).text).toContain('history debug on')
+  expect((await run($, 'history debug')).text).toContain('history debug off')
+  expect(written).toEqual([])
 })

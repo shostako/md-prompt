@@ -263,6 +263,8 @@ describe("the vba setting", () => {
     expect(parseModeCommand("history toggle", "on", on)).toEqual({ kind: "flag", name: "history", value: "off" })
     expect(parseModeCommand("history", "on", on)).toEqual({ kind: "flag", name: "history", value: null })
     expect(parseModeCommand("vba maybe", "on", on)).toEqual({ kind: "usage", input: "vba maybe" })
+    expect(parseModeCommand("history debug", "on", on)).toEqual({ kind: "debug" })
+    expect(parseModeCommand("vba debug", "on", on)).toEqual({ kind: "usage", input: "vba debug" })
   })
 
   test("the upstream commands are unchanged", () => {
