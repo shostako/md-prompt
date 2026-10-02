@@ -15,6 +15,36 @@ Markdown, painted onto Claude Code's prompt box as you type. Fenced code becomes
 
 </div>
 
+## About this fork (shostako/md-prompt)
+
+A fork of [nogu66/md-prompt](https://github.com/nogu66/md-prompt) that adds VBA painting. Everything the original does is kept; this fork adds three things:
+
+- **Highlighting for ```` ```vba ```` fences.** `vb` `vbs` `bas` `cls` `vb.net` and similar names are treated the same.
+  - Coloured: keywords (in any case), `'` and `Rem` comments, strings, numbers (`&HFF` and the like), `#2024/1/31#` dates, `#If` and other conditional compilation lines, line labels, and built-in constants such as `xlUp` and `vbCrLf`
+  - A word after `.` (`Debug.Print`, `rng.Select`) is a member, so it never gets the keyword colour
+  - A `\` inside a string is just a character: `"C:\dir\"` closes at its last `"`
+- **VBA typed without a fence is detected.**
+  - From a header line starting with `Sub`, `Function` or `Property Get/Let/Set` to its matching `End Sub` (or `End Function`, `End Property`) line, the procedure is painted as a VBA code card
+  - Nothing is painted until the `End` line is typed, the way `**bold**` waits for its closing `**`
+  - Lines inside a fence never count, and a `*` inside the procedure is never read as Markdown
+  - Switch it with `/md-prompt vba on | off | toggle`, or the "VBA detection" row in `/config` (on by default)
+- **Your sent messages are drawn again in the transcript.**
+  - A message of your own that holds a code block (or a detected VBA procedure) is redrawn: prose as Markdown, code in the same colours as the prompt box, VBA included
+  - The code is coloured by this plugin itself, so it stays coloured even if you turned Claude Code's highlighting off with `syntaxHighlightingDisabled`
+  - Only the drawing changes. The stored message, and what the model reads, stay exactly as you typed them
+  - Messages without code, notification rows, and messages over 10,000 characters keep Claude Code's own drawing
+  - Switch it with `/md-prompt history on | off | toggle`, or the "Markdown in history" row in `/config` (on by default)
+
+To install this fork, remove the original `md-prompt@nogu66` first if you have it, since both would paint the same text twice:
+
+```bash
+claude plugin uninstall md-prompt@nogu66   # if installed
+claude plugin marketplace add shostako/md-prompt
+claude plugin install md-prompt@shostako
+```
+
+From Claude Code 2.1.287 on, `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS` is no longer needed (it is ignored). This fork is not affiliated with or endorsed by the original author. The original README follows.
+
 ## Quick start
 
 1. Turn on function hooks (early access) in `~/.claude/settings.json`:

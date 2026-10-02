@@ -43,7 +43,7 @@ claude plugin marketplace add shostako/md-prompt
 claude plugin install md-prompt@shostako
 ```
 
-Claude Code 2.1.287 以降では `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS` は不要です（無視されます）。以下は元の README です。
+Claude Code 2.1.287 以降では `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS` は不要です（無視されます）。このフォークは、元の作者が関与したり推奨したりしているものではありません。以下は元の README です。
 
 
 ## クイックスタート
