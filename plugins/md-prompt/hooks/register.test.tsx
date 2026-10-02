@@ -189,3 +189,60 @@ test('/md-prompt vba alone reports and writes nothing; status names it', async (
   expect(status.text).toContain('/md-prompt vba on | off | toggle')
   expect(written).toEqual([])
 })
+
+// ---- fork: sent messages drawn as Markdown ---------------------------------------------------
+
+const userRow = (text: string, kind = 'composer', isExpanded = true) => ({
+  component: 'UserMessage' as const,
+  props: { text, origin: { kind }, isExpanded } as any,
+})
+/** Stand in for Claude Code's own drawing of the row, beneath the plugin. */
+const engineDraws = (on: any) =>
+  on('ui.render', { component: 'UserMessage' }, () => ({ type: 'Text', props: {}, children: ['ENGINE'] }))
+const drawnOf = async ($: any, row: any, surface: 'terminal' | 'desktop' = 'terminal') => {
+  const ui = await $.ui.mount({ plugin: 'md-prompt', surface, ...row })
+  const tree = JSON.stringify(await ui.drawn())
+  await ui.unmount()
+  return tree
+}
+
+test('a sent message holding a fence is drawn as Markdown on terminal and desktop', async ($, on) => {
+  engineDraws(on)
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const tree = await drawnOf($, userRow('見て\n```py\nprint(1)\n```'), surface)
+    expect(tree).toContain('"Markdown"')
+    expect(tree).toContain('print(1)')
+  }
+})
+
+test('an unfenced VBA procedure gets a vba fence in the drawing', async ($, on) => {
+  engineDraws(on)
+  const tree = await drawnOf($, userRow('Sub A()\n  x = 1\nEnd Sub'))
+  expect(tree).toContain('```vba')
+})
+
+test('a message without code keeps Claude Code drawing', async ($, on) => {
+  engineDraws(on)
+  expect(await drawnOf($, userRow('**太字** だけ'))).toContain('ENGINE')
+})
+
+test('a message from Remote Control is drawn too; a notification row is not', async ($, on) => {
+  engineDraws(on)
+  expect(await drawnOf($, userRow('```\nx\n```', 'bridge'))).toContain('"Markdown"')
+  expect(await drawnOf($, userRow('```\nx\n```', 'task-notification'))).toContain('ENGINE')
+  expect(await drawnOf($, userRow('```\nx\n```', 'composer', false))).toContain('ENGINE')
+})
+
+test('the history setting off keeps Claude Code drawing', { options: { history: 'off' } }, async ($, on) => {
+  engineDraws(on)
+  expect(await drawnOf($, userRow('```\nx\n```'))).toContain('ENGINE')
+})
+
+test('/md-prompt history off writes its setting and stops at once', async ($, on) => {
+  engineDraws(on)
+  const written = acceptSettings(on)
+  const result = await run($, 'history off')
+  expect(written).toEqual([{ key: 'md-prompt.history', value: 'off' }])
+  expect(result.text).toContain('history off')
+  expect(await drawnOf($, userRow('```\nx\n```'))).toContain('ENGINE')
+})

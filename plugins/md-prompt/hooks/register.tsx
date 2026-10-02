@@ -16,22 +16,25 @@
 // fields the write is refused: the mode then holds for the rest of this activation only.
 
 import type { Register } from "claude-code"
+import { historyMarkdown } from "./lib/history"
 import {
+  describeFlag,
   describeMode,
-  describeVba,
   formatStatus,
   formatUsage,
   paintFor,
   parseModeCommand,
+  readFlag,
   readMode,
-  readVbaAuto,
+  type Flag,
+  type Flags,
   type Mode,
-  type VbaAuto,
+  type OnOff,
 } from "./lib/mode"
 
 // `<plugin>.<field>` of the userConfig fields in plugin.json.
 const MODE_SETTING = "md-prompt.mode"
-const VBA_SETTING = "md-prompt.vba" // fork: VBA detection
+const FLAG_SETTING: Record<Flag, string> = { vba: "md-prompt.vba", history: "md-prompt.history" } // fork
 
 // The slice of `$` used here. The loader only lets `$` reach functions declared at the top of
 // the file, so every `$` call sits in one of the helpers below rather than in a closure.
@@ -52,7 +55,7 @@ async function writeSetting($: Dollar, key: string, value: string): Promise<stri
 
 // A hook that throws is skipped with a notice on every keystroke; painting is decoration, so a
 // bug in it must cost the colours, never the notice.
-function paint(value: Mode, text: string, vba: VbaAuto) {
+function paint(value: Mode, text: string, vba: OnOff) {
   try {
     return paintFor(value, text, vba)
   } catch {
@@ -60,9 +63,21 @@ function paint(value: Mode, text: string, vba: VbaAuto) {
   }
 }
 
+/** Fork: the Markdown a sent message is drawn with, or null for Claude Code's own drawing. Never throws. */
+function historyText(text: string, vba: OnOff): string | null {
+  try {
+    return historyMarkdown(text, vba === "on")
+  } catch {
+    return null
+  }
+}
+
+/** Fork: the rows that are the person's own prompt, typed here or sent from another device. */
+const OWN_PROMPT = new Set(["composer", "bridge"])
+
 export const register: Register = (on, options) => {
   let mode: Mode = readMode(options.mode)
-  let vba: VbaAuto = readVbaAuto(options.vba)
+  const flags: Flags = { vba: readFlag("vba", options.vba), history: readFlag("history", options.history) }
 
   on("session.start", async ($, e, next) => {
     const r = await next(e)
@@ -70,7 +85,7 @@ export const register: Register = (on, options) => {
       .register({
         name: "md-prompt",
         description: "Turn Markdown painting in the prompt box on, off, or code-only",
-        argumentHint: "[on | code | off | toggle]",
+        argumentHint: "[on | code | off | toggle | vba … | history …]",
         immediate: true,
       })
       .catch((err: unknown) => $.ui.log(`md-prompt: command.register failed: ${err}`))
@@ -78,14 +93,15 @@ export const register: Register = (on, options) => {
   })
 
   on("command.run", { command: "md-prompt" }, async ($, e) => {
-    const cmd = parseModeCommand(e.args, mode, vba)
-    if (cmd.kind === "status") return { text: formatStatus(mode, vba) }
+    const cmd = parseModeCommand(e.args, mode, flags)
+    if (cmd.kind === "status") return { text: formatStatus(mode, flags) }
     if (cmd.kind === "usage") return { text: formatUsage(cmd.input) }
-    if (cmd.kind === "vba") {
-      if (cmd.value === null) return { text: describeVba(vba) }
-      vba = cmd.value
-      const failure = await writeSetting($, VBA_SETTING, vba)
-      return { text: failure ? `${describeVba(vba)} (not saved for next time: ${failure})` : describeVba(vba) }
+    if (cmd.kind === "flag") {
+      if (cmd.value === null) return { text: describeFlag(cmd.name, flags[cmd.name]) }
+      flags[cmd.name] = cmd.value
+      const said = describeFlag(cmd.name, cmd.value)
+      const failure = await writeSetting($, FLAG_SETTING[cmd.name], cmd.value)
+      return { text: failure ? `${said} (not saved for next time: ${failure})` : said }
     }
     // Applies at once; a written setting reloads the module, which starts in the same mode.
     mode = cmd.mode
@@ -96,11 +112,28 @@ export const register: Register = (on, options) => {
   on("prompt.edit", async ($, e, next) => {
     const box = await next(e)
     if (mode === "off") return box
-    return { ...box, decorations: [...(box.decorations ?? []), ...paint(mode, box.text, vba)] }
+    return { ...box, decorations: [...(box.decorations ?? []), ...paint(mode, box.text, flags.vba)] }
   })
 
   on("prompt.fill", ($, e, next) => {
     if (mode === "off" || e.mode !== "replace") return next(e)
-    return next({ ...e, decorations: [...(e.decorations ?? []), ...paint(mode, e.text, vba)] })
+    return next({ ...e, decorations: [...(e.decorations ?? []), ...paint(mode, e.text, flags.vba)] })
+  })
+
+  // Fork: a sent message that holds code is drawn again as Markdown, its code highlighted the way
+  // the assistant's replies are. Only the drawing changes; the stored message stays as typed.
+  on("ui.render", { component: "UserMessage" }, async ($, e, next) => {
+    if (flags.history === "off" || !e.props.isExpanded || !OWN_PROMPT.has(e.props.origin.kind)) return next(e)
+    const text = historyText(e.props.text, flags.vba)
+    if (text === null) return next(e)
+    const { Box, Text, Markdown } = $.ui.resolve(e)
+    return (
+      <Box flexDirection="row">
+        <Text dimColor>{"❯ "}</Text>
+        <Box flexDirection="column" flexGrow={1}>
+          <Markdown text={text} />
+        </Box>
+      </Box>
+    )
   })
 }

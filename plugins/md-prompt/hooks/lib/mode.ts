@@ -9,35 +9,47 @@ export type Mode = "on" | "code" | "off"
 
 export const DEFAULT_MODE: Mode = "on"
 
-/** Fork: whether unfenced VBA procedures (`Sub` … `End Sub`) are painted as VBA. */
-export type VbaAuto = "on" | "off"
+/** Fork: an on/off setting of its own, beside the mode. */
+export type OnOff = "on" | "off"
+
+/**
+ * Fork's settings: `vba`, whether unfenced VBA procedures (`Sub` … `End Sub`) are painted as VBA;
+ * `history`, whether the person's own messages in the transcript are drawn as Markdown.
+ */
+export type Flag = "vba" | "history"
+export type Flags = Record<Flag, OnOff>
+
+/** Kept for the VBA setting's callers. */
+export type VbaAuto = OnOff
 
 export const DEFAULT_VBA_AUTO: VbaAuto = "on"
+export const DEFAULT_FLAGS: Flags = { vba: "on", history: "on" }
 
 export type ModeCommand =
   | { kind: "set"; mode: Mode }
   | { kind: "status" }
   | { kind: "usage"; input: string }
-  | { kind: "vba"; value: VbaAuto | null }
+  | { kind: "flag"; name: Flag; value: OnOff | null }
 
 /**
  * Read the arguments of `/md-prompt`. Nothing (or `status`) asks for the state; `toggle` flips
- * between off and on, so from `code` it turns off. `vba on | off | toggle` sets the fork's VBA
- * detection, and `vba` alone asks for it.
+ * between off and on, so from `code` it turns off. `vba` / `history` `on | off | toggle` set the
+ * fork's settings, and either word alone asks for that setting.
  */
-export function parseModeCommand(args: string, current: Mode, currentVba: VbaAuto = DEFAULT_VBA_AUTO): ModeCommand {
+export function parseModeCommand(args: string, current: Mode, flags: Flags = DEFAULT_FLAGS): ModeCommand {
   const word = args.trim().toLowerCase()
-  const vba = /^vba(?:\s+(\S+))?$/.exec(word)
-  if (vba) {
-    switch (vba[1]) {
+  const sub = /^(vba|history)(?:\s+(\S+))?$/.exec(word)
+  if (sub) {
+    const name = sub[1] as Flag
+    switch (sub[2]) {
       case undefined:
-        return { kind: "vba", value: null }
+        return { kind: "flag", name, value: null }
       case "on":
-        return { kind: "vba", value: "on" }
+        return { kind: "flag", name, value: "on" }
       case "off":
-        return { kind: "vba", value: "off" }
+        return { kind: "flag", name, value: "off" }
       case "toggle":
-        return { kind: "vba", value: currentVba === "on" ? "off" : "on" }
+        return { kind: "flag", name, value: flags[name] === "on" ? "off" : "on" }
       default:
         return { kind: "usage", input: word }
     }
@@ -67,7 +79,12 @@ export function readMode(value: unknown): Mode {
 
 /** The VBA setting a value names; anything unrecognised (or absent) is the default. */
 export function readVbaAuto(value: unknown): VbaAuto {
-  return value === "on" || value === "off" ? value : DEFAULT_VBA_AUTO
+  return readFlag("vba", value)
+}
+
+/** A fork setting a value names; anything unrecognised (or absent) is that setting's default. */
+export function readFlag(name: Flag, value: unknown): OnOff {
+  return value === "on" || value === "off" ? value : DEFAULT_FLAGS[name]
 }
 
 export function describeVba(value: VbaAuto): string {
@@ -76,7 +93,17 @@ export function describeVba(value: VbaAuto): string {
     : "VBA detection off — only fenced ```vba is painted as VBA"
 }
 
-const USAGE = "/md-prompt on | code | off | toggle\n/md-prompt vba on | off | toggle"
+export function describeHistory(value: OnOff): string {
+  return value === "on"
+    ? "history on — your sent messages holding code are drawn as Markdown, code highlighted"
+    : "history off — your sent messages are drawn as Claude Code draws them"
+}
+
+export function describeFlag(name: Flag, value: OnOff): string {
+  return name === "vba" ? describeVba(value) : describeHistory(value)
+}
+
+const USAGE = "/md-prompt on | code | off | toggle\n/md-prompt vba on | off | toggle\n/md-prompt history on | off | toggle"
 
 export function describeMode(mode: Mode): string {
   switch (mode) {
@@ -89,8 +116,9 @@ export function describeMode(mode: Mode): string {
   }
 }
 
-export function formatStatus(mode: Mode, vba?: VbaAuto): string {
-  return vba === undefined ? `${describeMode(mode)}\n${USAGE}` : `${describeMode(mode)}\n${describeVba(vba)}\n${USAGE}`
+export function formatStatus(mode: Mode, flags?: Flags): string {
+  if (flags === undefined) return `${describeMode(mode)}\n${USAGE}`
+  return `${describeMode(mode)}\n${describeVba(flags.vba)}\n${describeHistory(flags.history)}\n${USAGE}`
 }
 
 export function formatUsage(input: string): string {

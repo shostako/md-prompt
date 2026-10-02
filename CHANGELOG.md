@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1-vba.2 (fork)
+
+- Added drawing your sent messages again as Markdown: a `ui.render` hook on `UserMessage` draws a message of your own (typed here, or sent over Remote Control) that holds a code fence with the `Markdown` element, the renderer replies use, so its code is highlighted in the transcript too. With VBA detection on, an unfenced VBA procedure is wrapped in a ```` ```vba ```` fence for the drawing. Only the drawing changes: the stored message and what the model reads stay as typed. Messages without code, notification rows and messages over 10,000 characters keep Claude Code's own drawing
+- Added the `history` setting (`/config`, "Markdown in history", default on) and `/md-prompt history on | off | toggle`
+
 ## 0.1.1-vba.1 (fork: shostako/md-prompt)
 
 - Added VBA highlighting for fenced code: ```` ```vba ````, `vb`, `vbs`, `vbscript`, `bas`, `cls`, `frm`, `vb.net`, `visual-basic`. Keywords are case-insensitive and a word after `.` or `!` is a member, not a keyword; `'` and `Rem` comments; strings with `""` and no backslash escapes; `&H` / `&O` numbers and type suffixes; `#date#` literals, `#If` directives and line labels; `vb…` / `xl…` / `mso…` constants as literals

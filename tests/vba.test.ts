@@ -11,6 +11,7 @@ import {
   readVbaAuto,
 } from "../plugins/md-prompt/hooks/lib/mode"
 import { clipOutside, findVbaRegions } from "../plugins/md-prompt/hooks/lib/vba-auto"
+import { HISTORY_MAX, historyMarkdown } from "../plugins/md-prompt/hooks/lib/history"
 import { at, expectValidRuns, paint } from "./helpers"
 
 const T = PALETTE.token
@@ -252,12 +253,16 @@ describe("unfenced VBA in the draft", () => {
 
 describe("the vba setting", () => {
   test("/md-prompt vba [on|off|toggle]", () => {
-    expect(parseModeCommand("vba", "on", "on")).toEqual({ kind: "vba", value: null })
-    expect(parseModeCommand("vba off", "on", "on")).toEqual({ kind: "vba", value: "off" })
-    expect(parseModeCommand("VBA On", "on", "off")).toEqual({ kind: "vba", value: "on" })
-    expect(parseModeCommand("vba toggle", "on", "on")).toEqual({ kind: "vba", value: "off" })
-    expect(parseModeCommand("vba toggle", "on", "off")).toEqual({ kind: "vba", value: "on" })
-    expect(parseModeCommand("vba maybe", "on", "on")).toEqual({ kind: "usage", input: "vba maybe" })
+    const on = { vba: "on", history: "on" } as const
+    const off = { vba: "off", history: "off" } as const
+    expect(parseModeCommand("vba", "on", on)).toEqual({ kind: "flag", name: "vba", value: null })
+    expect(parseModeCommand("vba off", "on", on)).toEqual({ kind: "flag", name: "vba", value: "off" })
+    expect(parseModeCommand("VBA On", "on", off)).toEqual({ kind: "flag", name: "vba", value: "on" })
+    expect(parseModeCommand("vba toggle", "on", on)).toEqual({ kind: "flag", name: "vba", value: "off" })
+    expect(parseModeCommand("vba toggle", "on", off)).toEqual({ kind: "flag", name: "vba", value: "on" })
+    expect(parseModeCommand("history toggle", "on", on)).toEqual({ kind: "flag", name: "history", value: "off" })
+    expect(parseModeCommand("history", "on", on)).toEqual({ kind: "flag", name: "history", value: null })
+    expect(parseModeCommand("vba maybe", "on", on)).toEqual({ kind: "usage", input: "vba maybe" })
   })
 
   test("the upstream commands are unchanged", () => {
@@ -272,9 +277,10 @@ describe("the vba setting", () => {
   })
 
   test("the status names both settings", () => {
-    const s = formatStatus("on", "off")
+    const s = formatStatus("on", { vba: "off", history: "on" })
     expect(s).toContain(describeVba("off"))
     expect(s).toContain("/md-prompt vba on | off | toggle")
+    expect(s).toContain("/md-prompt history on | off | toggle")
   })
 
   test("paintFor passes the setting through", () => {
@@ -282,5 +288,36 @@ describe("the vba setting", () => {
     expect(paintFor("on", t, "on")).toEqual(decorateMarkdown(t, AUTO))
     expect(paintFor("on", t, "off")).toEqual(decorateMarkdown(t))
     expect(paintFor("off", t, "on")).toEqual([])
+  })
+})
+
+describe("historyMarkdown", () => {
+  test("a message without code is left to Claude Code", () => {
+    expect(historyMarkdown("**太字** だけ", true)).toBeNull()
+    expect(historyMarkdown("", true)).toBeNull()
+  })
+
+  test("a message with a fence is drawn as it was typed", () => {
+    const t = "これ\n```py\nprint(1)\n```"
+    expect(historyMarkdown(t, true)).toBe(t)
+    expect(historyMarkdown(t, false)).toBe(t)
+  })
+
+  test("an unfenced procedure is wrapped in a vba fence for the drawing", () => {
+    const t = "直して\nSub A()\n  x = 1\nEnd Sub\nよろしく"
+    expect(historyMarkdown(t, true)).toBe("直して\n```vba\nSub A()\n  x = 1\nEnd Sub\n```\nよろしく")
+    expect(historyMarkdown(t, false)).toBeNull()
+  })
+
+  test("two procedures, two fences; a fenced one is not wrapped again", () => {
+    const t = "Sub A()\nEnd Sub\n```vba\nSub B()\nEnd Sub\n```\nSub C()\nEnd Sub"
+    const out = historyMarkdown(t, true)!
+    expect(out.match(/```vba/g)).toHaveLength(3)
+    expect(out).toContain("```vba\nSub A()\nEnd Sub\n```")
+    expect(out).toContain("```vba\nSub C()\nEnd Sub\n```")
+  })
+
+  test("too long for the Markdown element: left to Claude Code", () => {
+    expect(historyMarkdown("```\n" + "x".repeat(HISTORY_MAX) + "\n```", true)).toBeNull()
   })
 })
