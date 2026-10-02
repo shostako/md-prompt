@@ -1,18 +1,18 @@
 {
-  "name": "nogu66",
+  "name": "shostako",
   "owner": {
-    "name": "nogu66"
+    "name": "shostako"
   },
   "metadata": {
-    "description": "nogu66's Claude Code plugins and mods"
+    "description": "shostako's fork of nogu66/md-prompt, with VBA painting"
   },
   "plugins": [
     {
       "name": "md-prompt",
       "source": "./plugins/md-prompt",
-      "description": "Paints Markdown onto the prompt box as you type: syntax-highlighted code blocks, inline code, bold, italic, lists, tables, quotes, links and headings. Paint only, your text is never changed.",
-      "homepage": "https://github.com/nogu66/md-prompt",
-      "repository": "https://github.com/nogu66/md-prompt"
+      "description": "Paints Markdown onto the prompt box as you type: syntax-highlighted code blocks, inline code, bold, italic, lists, tables, quotes, links and headings. Paint only, your text is never changed. This fork adds VBA: ```vba highlighting, and Sub … End Sub typed without a fence painted as VBA.",
+      "homepage": "https://github.com/shostako/md-prompt",
+      "repository": "https://github.com/shostako/md-prompt"
     }
   ]
 }

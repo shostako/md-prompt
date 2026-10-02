@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1-vba.1 (fork: shostako/md-prompt)
+
+- Added VBA highlighting for fenced code: ```` ```vba ````, `vb`, `vbs`, `vbscript`, `bas`, `cls`, `frm`, `vb.net`, `visual-basic`. Keywords are case-insensitive and a word after `.` or `!` is a member, not a keyword; `'` and `Rem` comments; strings with `""` and no backslash escapes; `&H` / `&O` numbers and type suffixes; `#date#` literals, `#If` directives and line labels; `vb…` / `xl…` / `mso…` constants as literals
+- Added detection of VBA procedures typed without a fence: from a `Sub` / `Function` / `Property Get|Let|Set` header line (optionally `Public` / `Private` / `Friend`, `Static`) to its matching `End` line, painted as a VBA code card once the `End` line is typed. Lines inside a fence never count, and Markdown runs are cut back to the text outside the procedure, so `a * b` is never emphasis
+- Added the `vba` setting (`/config`, "VBA detection", default on) and `/md-prompt vba on | off | toggle`; `/md-prompt` now reports it too
+- Marketplace renamed to `shostako`: install as `md-prompt@shostako`
+
 ## 0.1.1
 
 - Added task boxes without a bullet: a `[ ]` or `[x]` opening a line is painted like `- [ ]` and `- [x]`, so a checklist typed as `[ ] todo` gets its boxes too

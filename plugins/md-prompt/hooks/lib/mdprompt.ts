@@ -24,6 +24,7 @@
 
 import { decorateBlocks } from "./blocks"
 import { MAX_CHARS, type Decoration } from "./palette"
+import { clipOutside, findVbaRegions, paintVbaRegions } from "./vba-auto"
 
 export { MAX_CHARS, PALETTE } from "./palette"
 export type { Decoration } from "./palette"
@@ -31,11 +32,17 @@ export type { Decoration } from "./palette"
 export type Options = {
   /** Paint fenced / indented code blocks and inline code only: no emphasis, links, headings, lists, tables or quote marks. */
   codeOnly?: boolean
+  /** Fork: paint unfenced VBA procedures (`Sub` … `End Sub`) as VBA code cards. See vba-auto.ts. */
+  autoVba?: boolean
 }
 
-export function decorateMarkdown(text: string, { codeOnly = false }: Options = {}): Decoration[] {
+export function decorateMarkdown(text: string, { codeOnly = false, autoVba = false }: Options = {}): Decoration[] {
   if (text === "" || text.length > MAX_CHARS) return []
-  const runs = decorateBlocks(text, codeOnly)
+  let runs = decorateBlocks(text, codeOnly)
+  if (autoVba) {
+    const regions = findVbaRegions(text)
+    if (regions.length > 0) runs = [...clipOutside(runs, regions), ...paintVbaRegions(text, regions)]
+  }
   // a safety net, not a filter anyone should hit: the engine gets only ranges that fit the draft
   return runs.filter((d) => d.start >= 0 && d.end <= text.length && d.end > d.start)
 }

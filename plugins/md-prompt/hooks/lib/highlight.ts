@@ -14,6 +14,7 @@ import { highlightDockerfile, highlightMakefile, highlightToml } from "./highlig
 import { highlightCss } from "./highlight-css"
 import { highlightMarkdown, highlightMarkup } from "./highlight-markup"
 import { quoteScanner, scanString, set } from "./highlight-util"
+import { highlightVba } from "./highlight-vba"
 
 export type TokenKind =
   | "keyword"
@@ -364,6 +365,10 @@ const SCANNERS: Record<string, (code: string) => Span[]> = {
   toml: (code) => highlightToml(code, false),
   ini: (code) => highlightToml(code, true), cfg: (code) => highlightToml(code, true),
   properties: (code) => highlightToml(code, true), dotenv: (code) => highlightToml(code, true),
+  // fork: VBA and its relatives (see highlight-vba.ts)
+  vba: highlightVba, vb: highlightVba, "vb.net": highlightVba, vbnet: highlightVba,
+  vbs: highlightVba, vbscript: highlightVba, bas: highlightVba, cls: highlightVba, frm: highlightVba,
+  "visual-basic": highlightVba, visualbasic: highlightVba,
 }
 
 /** An own entry of a language table: `constructor` and `__proto__` are not languages. */

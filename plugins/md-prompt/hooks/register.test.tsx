@@ -148,3 +148,44 @@ test('status and a bad argument write nothing', async ($, on) => {
   expect(bad.text).toContain('"maybe"')
   expect(written).toEqual([])
 })
+
+// ---- fork: VBA detection --------------------------------------------------------------------
+
+const PROC = 'Sub Calc()\n  y = a * b\nEnd Sub'
+const hasCard = (e: any) => (e.decorations ?? []).some((d: any) => d.backgroundColor === CARD)
+
+test('an unfenced VBA procedure is painted by default', async ($, on) => {
+  const fill = recordFills(on)
+  const e = await fill($, { text: PROC, mode: 'replace' })
+  expect(hasCard(e)).toBe(true)
+  expect(e.text).toBe(PROC)
+})
+
+test('the vba setting off leaves it to Markdown', { options: { vba: 'off' } }, async ($, on) => {
+  const fill = recordFills(on)
+  const e = await fill($, { text: PROC, mode: 'replace' })
+  expect(hasCard(e)).toBe(false)
+})
+
+test('/md-prompt vba off writes its own setting and stops detecting at once', async ($, on) => {
+  const fill = recordFills(on)
+  const written = acceptSettings(on)
+  const result = await run($, 'vba off')
+  expect(written).toEqual([{ key: 'md-prompt.vba', value: 'off' }])
+  expect(result.text).toContain('VBA detection off')
+  let e = await fill($, { text: PROC, mode: 'replace' })
+  expect(hasCard(e)).toBe(false)
+  await run($, 'vba on')
+  e = await fill($, { text: PROC, mode: 'replace' })
+  expect(hasCard(e)).toBe(true)
+  expect(written.map((w) => w.value)).toEqual(['off', 'on'])
+})
+
+test('/md-prompt vba alone reports and writes nothing; status names it', async ($, on) => {
+  const written = acceptSettings(on)
+  const v = await run($, 'vba')
+  expect(v.text).toContain('VBA detection on')
+  const status = await run($, '')
+  expect(status.text).toContain('/md-prompt vba on | off | toggle')
+  expect(written).toEqual([])
+})

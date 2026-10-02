@@ -18,16 +18,20 @@
 import type { Register } from "claude-code"
 import {
   describeMode,
+  describeVba,
   formatStatus,
   formatUsage,
   paintFor,
   parseModeCommand,
   readMode,
+  readVbaAuto,
   type Mode,
+  type VbaAuto,
 } from "./lib/mode"
 
-// `<plugin>.<field>` of the userConfig field in plugin.json.
+// `<plugin>.<field>` of the userConfig fields in plugin.json.
 const MODE_SETTING = "md-prompt.mode"
+const VBA_SETTING = "md-prompt.vba" // fork: VBA detection
 
 // The slice of `$` used here. The loader only lets `$` reach functions declared at the top of
 // the file, so every `$` call sits in one of the helpers below rather than in a closure.
@@ -37,9 +41,9 @@ type Dollar = {
 }
 
 /** Resolves to null when the setting was written, else why not. A refusal must never escape the hook. */
-async function writeMode($: Dollar, value: Mode): Promise<string | null> {
+async function writeSetting($: Dollar, key: string, value: string): Promise<string | null> {
   try {
-    const result = await $.config.set({ key: MODE_SETTING, value })
+    const result = await $.config.set({ key, value })
     return result.deny ?? null
   } catch (err) {
     return String(err)
@@ -48,9 +52,9 @@ async function writeMode($: Dollar, value: Mode): Promise<string | null> {
 
 // A hook that throws is skipped with a notice on every keystroke; painting is decoration, so a
 // bug in it must cost the colours, never the notice.
-function paint(value: Mode, text: string) {
+function paint(value: Mode, text: string, vba: VbaAuto) {
   try {
-    return paintFor(value, text)
+    return paintFor(value, text, vba)
   } catch {
     return []
   }
@@ -58,6 +62,7 @@ function paint(value: Mode, text: string) {
 
 export const register: Register = (on, options) => {
   let mode: Mode = readMode(options.mode)
+  let vba: VbaAuto = readVbaAuto(options.vba)
 
   on("session.start", async ($, e, next) => {
     const r = await next(e)
@@ -73,23 +78,29 @@ export const register: Register = (on, options) => {
   })
 
   on("command.run", { command: "md-prompt" }, async ($, e) => {
-    const cmd = parseModeCommand(e.args, mode)
-    if (cmd.kind === "status") return { text: formatStatus(mode) }
+    const cmd = parseModeCommand(e.args, mode, vba)
+    if (cmd.kind === "status") return { text: formatStatus(mode, vba) }
     if (cmd.kind === "usage") return { text: formatUsage(cmd.input) }
+    if (cmd.kind === "vba") {
+      if (cmd.value === null) return { text: describeVba(vba) }
+      vba = cmd.value
+      const failure = await writeSetting($, VBA_SETTING, vba)
+      return { text: failure ? `${describeVba(vba)} (not saved for next time: ${failure})` : describeVba(vba) }
+    }
     // Applies at once; a written setting reloads the module, which starts in the same mode.
     mode = cmd.mode
-    const failure = await writeMode($, mode)
+    const failure = await writeSetting($, MODE_SETTING, mode)
     return { text: failure ? `${describeMode(mode)} (not saved for next time: ${failure})` : describeMode(mode) }
   })
 
   on("prompt.edit", async ($, e, next) => {
     const box = await next(e)
     if (mode === "off") return box
-    return { ...box, decorations: [...(box.decorations ?? []), ...paint(mode, box.text)] }
+    return { ...box, decorations: [...(box.decorations ?? []), ...paint(mode, box.text, vba)] }
   })
 
   on("prompt.fill", ($, e, next) => {
     if (mode === "off" || e.mode !== "replace") return next(e)
-    return next({ ...e, decorations: [...(e.decorations ?? []), ...paint(mode, e.text)] })
+    return next({ ...e, decorations: [...(e.decorations ?? []), ...paint(mode, e.text, vba)] })
   })
 }

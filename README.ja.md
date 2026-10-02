@@ -15,6 +15,31 @@ Claude Code の入力欄に、入力中の Markdown を装飾して表示しま�
 
 </div>
 
+## このフォークについて（shostako/md-prompt）
+
+[nogu66/md-prompt](https://github.com/nogu66/md-prompt) を元に、VBA の塗り分けを足したフォークです。元の機能はそのまま残っていて、追加は次の2つです。
+
+- **```` ```vba ```` の色分け。** `vb` `vbs` `bas` `cls` `vb.net` なども同じ扱いです。
+  - 色が付くもの: キーワード（大文字小文字を問わない）、`'` と `Rem` のコメント、文字列、数値（`&HFF` など）、`#2024/1/31#` の日付、`#If` などの条件付きコンパイル、行ラベル、`xlUp` や `vbCrLf` などの組み込み定数
+  - `.` の後ろの語（`Debug.Print` や `rng.Select`）はメンバーとして扱い、キーワードの色にはしません
+  - 文字列の中の `\` はただの文字です。`"C:\dir\"` は最後の `"` で閉じます
+- **フェンス無しで打った VBA の自動判定。**
+  - `Sub` `Function` `Property Get/Let/Set` で始まる見出し行から、対応する `End Sub` などの行までを VBA のコードカードとして塗ります
+  - `End` の行を打つまでは塗りません（`**太字**` が閉じの `**` を待つのと同じです）
+  - フェンスの中の行は対象外です。範囲内の `*` などは Markdown として解釈しません
+  - `/md-prompt vba on | off | toggle` で切り替えます。`/config` の「VBA detection」でも変えられます（既定は on）
+
+インストールは次のとおりです。元の `md-prompt@nogu66` を入れている場合は、二重に塗られるので先に外してください。
+
+```bash
+claude plugin uninstall md-prompt@nogu66   # 入れている場合
+claude plugin marketplace add shostako/md-prompt
+claude plugin install md-prompt@shostako
+```
+
+Claude Code 2.1.287 以降では `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS` は不要です（無視されます）。以下は元の README です。
+
+
 ## クイックスタート
 
 1. `~/.claude/settings.json` で function hooks（early access）を有効にします。

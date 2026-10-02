@@ -1,12 +1,12 @@
 {
   "name": "md-prompt",
-  "version": "0.1.1",
-  "description": "Paints Markdown onto Claude Code's prompt box as you type: fenced code becomes a syntax-highlighted card (even before you close the fence), and inline code, bold, italic, lists, task lists, quotes, tables, links and headings are styled. Paint only, your text is never changed.",
+  "version": "0.1.1-vba.1",
+  "description": "Paints Markdown onto Claude Code's prompt box as you type: fenced code becomes a syntax-highlighted card (even before you close the fence), and inline code, bold, italic, lists, task lists, quotes, tables, links and headings are styled. Paint only, your text is never changed. Fork of nogu66/md-prompt that adds VBA: ```vba highlighting, and Sub … End Sub typed without a fence painted as VBA.",
   "author": {
-    "name": "nogu66"
+    "name": "shostako (fork of nogu66/md-prompt)"
   },
-  "homepage": "https://github.com/nogu66/md-prompt",
-  "repository": "https://github.com/nogu66/md-prompt",
+  "homepage": "https://github.com/shostako/md-prompt",
+  "repository": "https://github.com/shostako/md-prompt",
   "license": "MIT",
   "keywords": [
     "markdown",
@@ -14,6 +14,7 @@
     "code-block",
     "syntax-highlight",
     "tables",
+    "vba",
     "function-hooks",
     "claude-mods"
   ],
@@ -26,6 +27,16 @@
       "options": [
         "on",
         "code",
+        "off"
+      ]
+    },
+    "vba": {
+      "type": "string",
+      "title": "VBA detection",
+      "description": "on: a VBA procedure typed without a fence (Sub … End Sub, Function … End Function, Property … End Property) is painted as VBA once its End line is typed. off: only a ```vba fence is. /md-prompt vba on|off changes it too.",
+      "default": "on",
+      "options": [
+        "on",
         "off"
       ]
     }
