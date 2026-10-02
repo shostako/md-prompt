@@ -146,24 +146,28 @@ export const register: Register = (on, options) => {
     if (segments === null) return next(e)
     const { Box, Text, Markdown } = $.ui.resolve(e)
     // Code is coloured by our own highlighter (see lib/history.ts), prose by the Markdown element.
-    const body = segments.map((s) =>
-      s.kind === "markdown" ? (
-        <Markdown text={s.text} />
-      ) : (
-        <Box flexDirection="column" backgroundColor={PALETTE.codeBg} paddingX={1}>
-          {[
-            ...(s.label === null ? [] : [<Text color={PALETTE.fence}>{s.label}</Text>]),
-            ...s.lines.map((line) => (
-              <Text color={PALETTE.codeFg}>
-                {line.length === 0
-                  ? [" "]
-                  : line.map((r) => (r.kind === null ? r.text : <Text color={PALETTE.token[r.kind]}>{r.text}</Text>))}
-              </Text>
-            )),
-          ]}
-        </Box>
-      ),
-    )
+    // One blank row between segments, whatever blank lines were typed between them: two code
+    // blocks never read as one card, as in the Markdown the assistant's replies are drawn with.
+    const body = segments.map((s, i) => (
+      <Box flexDirection="column" marginTop={i === 0 ? 0 : 1}>
+        {s.kind === "markdown" ? (
+          <Markdown text={s.text} />
+        ) : (
+          <Box flexDirection="column" backgroundColor={PALETTE.codeBg} paddingX={1}>
+            {[
+              ...(s.label === null ? [] : [<Text color={PALETTE.fence}>{s.label}</Text>]),
+              ...s.lines.map((line) => (
+                <Text color={PALETTE.codeFg}>
+                  {line.length === 0
+                    ? [" "]
+                    : line.map((r) => (r.kind === null ? r.text : <Text color={PALETTE.token[r.kind]}>{r.text}</Text>))}
+                </Text>
+              )),
+            ]}
+          </Box>
+        )}
+      </Box>
+    ))
     return (
       <Box flexDirection="row">
         <Text dimColor>{"❯ "}</Text>

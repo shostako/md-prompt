@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1-vba.5 (fork)
+
+- Changed history drawing to put one blank row between segments, whatever blank lines were typed between them, so two code blocks typed back to back no longer read as one card
+
 ## 0.1.1-vba.4 (fork)
 
 - Changed history drawing to colour code itself: a sent message is cut into prose (drawn with the `Markdown` element) and code blocks (drawn as runs coloured by the prompt box's own highlighter, VBA included, on the code card background). The engine's highlighter is off for anyone with `syntaxHighlightingDisabled`, and knows no VBA, so code drawn through `Markdown` stayed plain

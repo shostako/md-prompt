@@ -1,6 +1,6 @@
 {
   "name": "md-prompt",
-  "version": "0.1.1-vba.4",
+  "version": "0.1.1-vba.5",
   "description": "Paints Markdown onto Claude Code's prompt box as you type: fenced code becomes a syntax-highlighted card (even before you close the fence), and inline code, bold, italic, lists, task lists, quotes, tables, links and headings are styled. Paint only, your text is never changed. Fork of nogu66/md-prompt that adds VBA: ```vba highlighting, and Sub … End Sub typed without a fence painted as VBA, and your sent messages that hold code drawn again as Markdown with highlighted code.",
   "author": {
     "name": "shostako (fork of nogu66/md-prompt)"

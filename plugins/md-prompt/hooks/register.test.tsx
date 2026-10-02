@@ -226,6 +226,15 @@ test('an unfenced VBA procedure is drawn as a vba code block', async ($, on) => 
   expect(tree).not.toContain('\\t') // tabs became spaces
 })
 
+test('segments are one blank row apart, whatever blank lines were typed', async ($, on) => {
+  engineDraws(on)
+  for (const sep of ['\n', '\n\n\n\n']) {
+    const tree = await drawnOf($, userRow('見て' + sep + '```vba\nSub A()\nEnd Sub\n```' + sep + 'Sub B()\nEnd Sub'))
+    expect(tree.match(/"marginTop":1/g)).toHaveLength(2) // prose | code | code: two gaps
+    expect(tree.match(/"marginTop":0/g)).toHaveLength(1)
+  }
+})
+
 test('a message without code keeps Claude Code drawing', async ($, on) => {
   engineDraws(on)
   expect(await drawnOf($, userRow('**太字** だけ'))).toContain('ENGINE')
