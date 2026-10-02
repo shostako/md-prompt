@@ -11,7 +11,7 @@ import {
   readVbaAuto,
 } from "../plugins/md-prompt/hooks/lib/mode"
 import { clipOutside, findVbaRegions } from "../plugins/md-prompt/hooks/lib/vba-auto"
-import { HISTORY_MAX, historyMarkdown } from "../plugins/md-prompt/hooks/lib/history"
+import { HISTORY_MAX, historySegments, toLines } from "../plugins/md-prompt/hooks/lib/history"
 import { at, expectValidRuns, paint } from "./helpers"
 
 const T = PALETTE.token
@@ -293,33 +293,57 @@ describe("the vba setting", () => {
   })
 })
 
-describe("historyMarkdown", () => {
+describe("historySegments", () => {
+  const codeText = (seg: any) => seg.lines.map((l: any[]) => l.map((r) => r.text).join("")).join("\n")
+
   test("a message without code is left to Claude Code", () => {
-    expect(historyMarkdown("**太字** だけ", true)).toBeNull()
-    expect(historyMarkdown("", true)).toBeNull()
+    expect(historySegments("**太字** だけ", true)).toBeNull()
+    expect(historySegments("", true)).toBeNull()
   })
 
-  test("a message with a fence is drawn as it was typed", () => {
-    const t = "これ\n```py\nprint(1)\n```"
-    expect(historyMarkdown(t, true)).toBe(t)
-    expect(historyMarkdown(t, false)).toBe(t)
+  test("prose and a fenced block become a markdown and a code segment", () => {
+    const segs = historySegments("これ\n\n```py\ndef f():\n    return 1\n```\nどう？", true)!
+    expect(segs.map((s) => s.kind)).toEqual(["markdown", "code", "markdown"])
+    expect((segs[0] as any).text).toBe("これ")
+    expect((segs[1] as any).label).toBe("py")
+    expect(codeText(segs[1])).toBe("def f():\n    return 1")
+    const kw = (segs[1] as any).lines[0].find((r: any) => r.text === "def")
+    expect(kw.kind).toBe("keyword")
+    expect((segs[2] as any).text).toBe("どう？")
   })
 
-  test("an unfenced procedure is wrapped in a vba fence for the drawing", () => {
-    const t = "直して\nSub A()\n  x = 1\nEnd Sub\nよろしく"
-    expect(historyMarkdown(t, true)).toBe("直して\n```vba\nSub A()\n  x = 1\nEnd Sub\n```\nよろしく")
-    expect(historyMarkdown(t, false)).toBeNull()
+  test("an unfenced procedure is a vba code segment, only with detection on", () => {
+    const t = "直して\nSub A()\n  x = 1 ' c\nEnd Sub\nよろしく"
+    const segs = historySegments(t, true)!
+    expect(segs.map((s) => s.kind)).toEqual(["markdown", "code", "markdown"])
+    expect((segs[1] as any).label).toBe("vba")
+    expect(codeText(segs[1])).toBe("Sub A()\n  x = 1 ' c\nEnd Sub")
+    expect((segs[1] as any).lines[1].some((r: any) => r.kind === "comment")).toBe(true)
+    expect(historySegments(t, false)).toBeNull()
   })
 
-  test("two procedures, two fences; a fenced one is not wrapped again", () => {
-    const t = "Sub A()\nEnd Sub\n```vba\nSub B()\nEnd Sub\n```\nSub C()\nEnd Sub"
-    const out = historyMarkdown(t, true)!
-    expect(out.match(/```vba/g)).toHaveLength(3)
-    expect(out).toContain("```vba\nSub A()\nEnd Sub\n```")
-    expect(out).toContain("```vba\nSub C()\nEnd Sub\n```")
+  test("a fenced vba block is coloured as VBA; no label without an info string", () => {
+    const segs = historySegments("```vba\nDim x As Long\n```", true)!
+    expect(segs).toHaveLength(1)
+    expect((segs[0] as any).lines[0].map((r: any) => r.kind)).toContain("type")
+    expect((historySegments("```\nplain\n```", true)![0] as any).label).toBeNull()
   })
 
-  test("too long for the Markdown element: left to Claude Code", () => {
-    expect(historyMarkdown("```\n" + "x".repeat(HISTORY_MAX) + "\n```", true)).toBeNull()
+  test("an unclosed fence runs to the end; an empty one has no lines but one", () => {
+    const segs = historySegments("見て\n```vba\nSub A()", true)!
+    expect(codeText(segs[1])).toBe("Sub A()")
+    expect(codeText(historySegments("```\n```", true)![0])).toBe("")
+  })
+
+  test("too long: left to Claude Code", () => {
+    expect(historySegments("```\n" + "x".repeat(HISTORY_MAX) + "\n```", true)).toBeNull()
+  })
+
+  test("toLines splits runs at line breaks and keeps every character but \\r", () => {
+    const code = 'a = "x\ny"\r\n\tb'
+    const lines = toLines(code, [{ start: 4, end: 9, kind: "string" }])
+    expect(lines.map((l) => l.map((r) => r.text).join(""))).toEqual(['a = "x', 'y"', "    b"])
+    expect(lines[0]!.at(-1)).toEqual({ text: '"x', kind: "string" })
+    expect(lines[1]![0]).toEqual({ text: 'y"', kind: "string" })
   })
 })

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1-vba.4 (fork)
+
+- Changed history drawing to colour code itself: a sent message is cut into prose (drawn with the `Markdown` element) and code blocks (drawn as runs coloured by the prompt box's own highlighter, VBA included, on the code card background). The engine's highlighter is off for anyone with `syntaxHighlightingDisabled`, and knows no VBA, so code drawn through `Markdown` stayed plain
+- Fixed history drawing being skipped in the normal view: `isExpanded` is true only under ctrl+o / --verbose, so the person's own prompt is drawn whatever it says (0.1.1-vba.3)
+- Added `/md-prompt history debug`: a session-only toast per drawn message saying what the history hook decided (0.1.1-vba.3)
+
 ## 0.1.1-vba.2 (fork)
 
 - Added drawing your sent messages again as Markdown: a `ui.render` hook on `UserMessage` draws a message of your own (typed here, or sent over Remote Control) that holds a code fence with the `Markdown` element, the renderer replies use, so its code is highlighted in the transcript too. With VBA detection on, an unfenced VBA procedure is wrapped in a ```` ```vba ```` fence for the drawing. Only the drawing changes: the stored message and what the model reads stay as typed. Messages without code, notification rows and messages over 10,000 characters keep Claude Code's own drawing

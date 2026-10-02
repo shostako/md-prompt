@@ -190,7 +190,7 @@ test('/md-prompt vba alone reports and writes nothing; status names it', async (
   expect(written).toEqual([])
 })
 
-// ---- fork: sent messages drawn as Markdown ---------------------------------------------------
+// ---- fork: sent messages drawn again, code coloured ------------------------------------------
 
 const userRow = (text: string, kind = 'composer', isExpanded = true) => ({
   component: 'UserMessage' as const,
@@ -205,20 +205,25 @@ const drawnOf = async ($: any, row: any, surface: 'terminal' | 'desktop' = 'term
   await ui.unmount()
   return tree
 }
+const KEYWORD = '#c586c0' // PALETTE.token.keyword
 
-test('a sent message holding a fence is drawn as Markdown on terminal and desktop', async ($, on) => {
+test('a sent message holding a fence: prose as Markdown, code coloured, on terminal and desktop', async ($, on) => {
   engineDraws(on)
   for (const surface of ['terminal', 'desktop'] as const) {
-    const tree = await drawnOf($, userRow('見て\n```py\nprint(1)\n```'), surface)
+    const tree = await drawnOf($, userRow('見て\n```py\ndef f():\n    return 1\n```'), surface)
     expect(tree).toContain('"Markdown"')
-    expect(tree).toContain('print(1)')
+    expect(tree).toContain(CARD)
+    expect(tree).toContain(KEYWORD) // `def`, `return`
+    expect(tree).not.toContain('ENGINE')
   }
 })
 
-test('an unfenced VBA procedure gets a vba fence in the drawing', async ($, on) => {
+test('an unfenced VBA procedure is drawn as a vba code block', async ($, on) => {
   engineDraws(on)
-  const tree = await drawnOf($, userRow('Sub A()\n  x = 1\nEnd Sub'))
-  expect(tree).toContain('```vba')
+  const tree = await drawnOf($, userRow('Sub A()\n\tx = 1 \' c\nEnd Sub'))
+  expect(tree).toContain('"vba"')
+  expect(tree).toContain(KEYWORD)
+  expect(tree).not.toContain('\\t') // tabs became spaces
 })
 
 test('a message without code keeps Claude Code drawing', async ($, on) => {
@@ -228,10 +233,10 @@ test('a message without code keeps Claude Code drawing', async ($, on) => {
 
 test('a message from Remote Control is drawn too; a notification row is not', async ($, on) => {
   engineDraws(on)
-  expect(await drawnOf($, userRow('```\nx\n```', 'bridge'))).toContain('"Markdown"')
+  expect(await drawnOf($, userRow('```\nx\n```', 'bridge'))).toContain(CARD)
   expect(await drawnOf($, userRow('```\nx\n```', 'task-notification'))).toContain('ENGINE')
   // the normal view's own prompt: drawn even when not expanded (that flag is ctrl+o's)
-  expect(await drawnOf($, userRow('```\nx\n```', 'composer', false))).toContain('"Markdown"')
+  expect(await drawnOf($, userRow('```\nx\n```', 'composer', false))).toContain(CARD)
 })
 
 test('the history setting off keeps Claude Code drawing', { options: { history: 'off' } }, async ($, on) => {

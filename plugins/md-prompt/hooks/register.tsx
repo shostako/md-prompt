@@ -16,7 +16,8 @@
 // fields the write is refused: the mode then holds for the rest of this activation only.
 
 import type { Register } from "claude-code"
-import { historyMarkdown } from "./lib/history"
+import { historySegments, type Segment } from "./lib/history"
+import { PALETTE } from "./lib/palette"
 import {
   describeFlag,
   describeMode,
@@ -63,10 +64,10 @@ function paint(value: Mode, text: string, vba: OnOff) {
   }
 }
 
-/** Fork: the Markdown a sent message is drawn with, or null for Claude Code's own drawing. Never throws. */
-function historyText(text: string, vba: OnOff): string | null {
+/** Fork: the segments a sent message is drawn with, or null for Claude Code's own drawing. Never throws. */
+function historyOf(text: string, vba: OnOff): Segment[] | null {
   try {
-    return historyMarkdown(text, vba === "on")
+    return historySegments(text, vba === "on")
   } catch {
     return null
   }
@@ -133,22 +134,41 @@ export const register: Register = (on, options) => {
   // whatever that flag says (it is true only under ctrl+o / --verbose).
   on("ui.render", { component: "UserMessage" }, async ($, e, next) => {
     const own = OWN_PROMPT.has(e.props.origin.kind)
-    const text = flags.history === "on" && own ? historyText(e.props.text, flags.vba) : null
+    const segments = flags.history === "on" && own ? historyOf(e.props.text, flags.vba) : null
     if (diagnose && !diagnosed.has(e.requestId)) {
       diagnosed.add(e.requestId)
-      const why = flags.history === "off" ? "history off" : !own ? "not your prompt" : text === null ? "no code" : "drawn as Markdown"
+      const why = flags.history === "off" ? "history off" : !own ? "not your prompt" : segments === null ? "no code" : "drawn"
       $.ui.toast(
         `md-prompt: origin=${e.props.origin.kind} expanded=${e.props.isExpanded} chars=${e.props.text.length} → ${why}`,
         { timeoutMs: 10_000 },
       )
     }
-    if (text === null) return next(e)
+    if (segments === null) return next(e)
     const { Box, Text, Markdown } = $.ui.resolve(e)
+    // Code is coloured by our own highlighter (see lib/history.ts), prose by the Markdown element.
+    const body = segments.map((s) =>
+      s.kind === "markdown" ? (
+        <Markdown text={s.text} />
+      ) : (
+        <Box flexDirection="column" backgroundColor={PALETTE.codeBg} paddingX={1}>
+          {[
+            ...(s.label === null ? [] : [<Text color={PALETTE.fence}>{s.label}</Text>]),
+            ...s.lines.map((line) => (
+              <Text color={PALETTE.codeFg}>
+                {line.length === 0
+                  ? [" "]
+                  : line.map((r) => (r.kind === null ? r.text : <Text color={PALETTE.token[r.kind]}>{r.text}</Text>))}
+              </Text>
+            )),
+          ]}
+        </Box>
+      ),
+    )
     return (
       <Box flexDirection="row">
         <Text dimColor>{"❯ "}</Text>
         <Box flexDirection="column" flexGrow={1}>
-          <Markdown text={text} />
+          {body}
         </Box>
       </Box>
     )

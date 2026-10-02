@@ -1,6 +1,6 @@
 {
   "name": "md-prompt",
-  "version": "0.1.1-vba.3",
+  "version": "0.1.1-vba.4",
   "description": "Paints Markdown onto Claude Code's prompt box as you type: fenced code becomes a syntax-highlighted card (even before you close the fence), and inline code, bold, italic, lists, task lists, quotes, tables, links and headings are styled. Paint only, your text is never changed. Fork of nogu66/md-prompt that adds VBA: ```vba highlighting, and Sub … End Sub typed without a fence painted as VBA, and your sent messages that hold code drawn again as Markdown with highlighted code.",
   "author": {
     "name": "shostako (fork of nogu66/md-prompt)"
@@ -43,7 +43,7 @@
     "history": {
       "type": "string",
       "title": "Markdown in history",
-      "description": "on: your sent messages that hold a code block (or, with VBA detection on, an unfenced VBA procedure) are drawn again in the transcript as Markdown, code highlighted the way replies are. Only the drawing changes. off: Claude Code draws them. /md-prompt history on|off changes it too.",
+      "description": "on: your sent messages that hold a code block (or, with VBA detection on, an unfenced VBA procedure) are drawn again in the transcript: prose as Markdown, code coloured by this plugin's own highlighter (the same colours as the prompt box, whatever syntaxHighlightingDisabled says). Only the drawing changes. off: Claude Code draws them. /md-prompt history on|off changes it too.",
       "default": "on",
       "options": [
         "on",
