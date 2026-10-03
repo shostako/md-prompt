@@ -17,7 +17,7 @@ Claude Code の入力欄に、入力中の Markdown を装飾して表示しま�
 
 ## このフォークについて（shostako/md-prompt）
 
-[nogu66/md-prompt](https://github.com/nogu66/md-prompt) を元に、VBA の塗り分けを足したフォークです。元の機能はそのまま残っていて、追加は次の3つです。
+[nogu66/md-prompt](https://github.com/nogu66/md-prompt) を元に、VBA の塗り分けと、送信済みメッセージの描き直しを足したフォークです。元の機能はそのまま残っていて、追加は次の3つです。
 
 - **```` ```vba ```` の色分け。** `vb` `vbs` `bas` `cls` `vb.net` なども同じ扱いです。
   - 色が付くもの: キーワード（大文字小文字を問わない）、`'` と `Rem` のコメント、文字列、数値（`&HFF` など）、`#2024/1/31#` の日付、`#If` などの条件付きコンパイル、行ラベル、`xlUp` や `vbCrLf` などの組み込み定数
@@ -43,7 +43,7 @@ claude plugin marketplace add shostako/md-prompt
 claude plugin install md-prompt@shostako
 ```
 
-Claude Code 2.1.287 以降では `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS` は不要です（無視されます）。このフォークは、元の作者が関与したり推奨したりしているものではありません。以下は元の README です。
+Claude Code 2.1.287 以降では `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS` は不要です（無視されます）。版ごとの変更は [CHANGELOG.ja.md](CHANGELOG.ja.md) にあります。このフォークは、元の作者が関与したり推奨したりしているものではありません。以下は元の README です。
 
 
 ## クイックスタート

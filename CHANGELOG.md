@@ -1,5 +1,7 @@
 # Changelog
 
+[日本語](CHANGELOG.ja.md)
+
 ## 0.1.1-vba.5 (fork)
 
 - Changed history drawing to put one blank row between segments, whatever blank lines were typed between them, so two code blocks typed back to back no longer read as one card

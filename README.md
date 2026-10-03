@@ -17,7 +17,7 @@ Markdown, painted onto Claude Code's prompt box as you type. Fenced code becomes
 
 ## About this fork (shostako/md-prompt)
 
-A fork of [nogu66/md-prompt](https://github.com/nogu66/md-prompt) that adds VBA painting. Everything the original does is kept; this fork adds three things:
+A fork of [nogu66/md-prompt](https://github.com/nogu66/md-prompt) that adds VBA painting and draws your sent messages again with their code highlighted. Everything the original does is kept; this fork adds three things:
 
 - **Highlighting for ```` ```vba ```` fences.** `vb` `vbs` `bas` `cls` `vb.net` and similar names are treated the same.
   - Coloured: keywords (in any case), `'` and `Rem` comments, strings, numbers (`&HFF` and the like), `#2024/1/31#` dates, `#If` and other conditional compilation lines, line labels, and built-in constants such as `xlUp` and `vbCrLf`
@@ -43,7 +43,7 @@ claude plugin marketplace add shostako/md-prompt
 claude plugin install md-prompt@shostako
 ```
 
-From Claude Code 2.1.287 on, `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS` is no longer needed (it is ignored). This fork is not affiliated with or endorsed by the original author. The original README follows.
+From Claude Code 2.1.287 on, `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS` is no longer needed (it is ignored). Changes by version are in [CHANGELOG.md](CHANGELOG.md). This fork is not affiliated with or endorsed by the original author. The original README follows.
 
 ## Quick start
 
