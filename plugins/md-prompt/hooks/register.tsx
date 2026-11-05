@@ -10,7 +10,7 @@
 //                 so only then are offsets into `e.text` offsets into the box.
 // The draft's characters, the cursor and other plugins' decorations pass through as they came.
 //
-// The mode is the plugin's `mode` setting (userConfig), a row in /config. `/md-prompt <mode>`
+// The mode is the plugin's `enabled` setting (userConfig), a toggle in /config. `/md-prompt <mode>`
 // writes that row, as a change in /config would; the engine then reloads this module with the
 // new value, which `register` reads from `options`. Where there is no /config row for plugin
 // fields the write is refused: the mode then holds for the rest of this activation only.
@@ -34,18 +34,18 @@ import {
 } from "./lib/mode"
 
 // `<plugin>.<field>` of the userConfig fields in plugin.json.
-const MODE_SETTING = "md-prompt.mode"
+const ENABLED_SETTING = "md-prompt.enabled"
 const FLAG_SETTING: Record<Flag, string> = { vba: "md-prompt.vba", history: "md-prompt.history" } // fork
 
 // The slice of `$` used here. The loader only lets `$` reach functions declared at the top of
 // the file, so every `$` call sits in one of the helpers below rather than in a closure.
 type Dollar = {
-  config: { set: (args: { key: string; value: string }) => Promise<{ deny?: string }> }
+  config: { set: (args: { key: string; value: string | boolean }) => Promise<{ deny?: string }> }
   ui: { log: (text: string) => void }
 }
 
 /** Resolves to null when the setting was written, else why not. A refusal must never escape the hook. */
-async function writeSetting($: Dollar, key: string, value: string): Promise<string | null> {
+async function writeSetting($: Dollar, key: string, value: string | boolean): Promise<string | null> {
   try {
     const result = await $.config.set({ key, value })
     return result.deny ?? null
@@ -77,7 +77,7 @@ function historyOf(text: string, vba: OnOff): Segment[] | null {
 const OWN_PROMPT = new Set(["composer", "bridge"])
 
 export const register: Register = (on, options) => {
-  let mode: Mode = readMode(options.mode)
+  let mode: Mode = readMode(options.enabled)
   const flags: Flags = { vba: readFlag("vba", options.vba), history: readFlag("history", options.history) }
   let diagnose = false // `/md-prompt history debug`: a toast per drawn message, this session only
   const diagnosed = new Set<string>()
@@ -87,8 +87,8 @@ export const register: Register = (on, options) => {
     await $.command
       .register({
         name: "md-prompt",
-        description: "Turn Markdown painting in the prompt box on, off, or code-only",
-        argumentHint: "[on | code | off | toggle | vba … | history …]",
+        description: "Turn Markdown painting in the prompt box on or off",
+        argumentHint: "[on | off | toggle | vba … | history …]",
         immediate: true,
       })
       .catch((err: unknown) => $.ui.log(`md-prompt: command.register failed: ${err}`))
@@ -113,7 +113,7 @@ export const register: Register = (on, options) => {
     }
     // Applies at once; a written setting reloads the module, which starts in the same mode.
     mode = cmd.mode
-    const failure = await writeSetting($, MODE_SETTING, mode)
+    const failure = await writeSetting($, ENABLED_SETTING, mode === "on")
     return { text: failure ? `${describeMode(mode)} (not saved for next time: ${failure})` : describeMode(mode) }
   })
 
