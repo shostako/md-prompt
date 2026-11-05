@@ -2,6 +2,22 @@
 
 [日本語](CHANGELOG.ja.md)
 
+## 0.2.0-vba.1 (fork)
+
+- Merged upstream 0.1.2 and 0.2.0: the `enabled` toggle replaces the `mode` picker, the code-only mode is gone (`/md-prompt code` is now a usage error), paths like `__tests__` are no longer painted bold, and the plugin has an icon and its own README
+- Kept the `vba` and `history` settings as on/off pickers. Claude Code refuses to load a plugin whose saved option does not fit its `userConfig`, so turning them into toggles would stop the plugin for anyone who saved `"off"`
+
+## 0.2.0
+
+- Changed the setting to an on/off toggle, **Markdown painting** (`enabled`), in place of the `mode` picker, which the plugin directory does not accept; a `mode` left in settings by 0.1.x is ignored, so painting starts on
+- Removed the code-only mode: `/md-prompt` takes `on`, `off` and `toggle`
+- Added a plugin icon, `.claude-plugin/icon.png` (source: `docs/icon.svg`)
+- Added a README in the plugin folder that says what each hook does and that `md-prompt.enabled` is the only setting the plugin writes
+
+## 0.1.2
+
+- Fixed paths with `__tests__`, `__pycache__`, `__mocks__`, `__snapshots__` and other `_` segments being painted bold: an `_` run right after a `/` no longer opens and one right before a `/` no longer closes, like the `*` in `src/*.ts`, and the Jest and Python directory names join the `__init__` exemption (#4)
+
 ## 0.1.1-vba.5 (fork)
 
 - Changed history drawing to put one blank row between segments, whatever blank lines were typed between them, so two code blocks typed back to back no longer read as one card

@@ -268,7 +268,6 @@ describe("the vba setting", () => {
   })
 
   test("the upstream commands are unchanged", () => {
-    expect(parseModeCommand("code", "on")).toEqual({ kind: "set", mode: "code" })
     expect(parseModeCommand("", "on")).toEqual({ kind: "status" })
   })
 

@@ -4,8 +4,8 @@
 
 import { decorateMarkdown, type Decoration } from "./mdprompt"
 
-/** `on` paints everything, `code` only fenced, indented and inline code, `off` nothing. */
-export type Mode = "on" | "code" | "off"
+/** `on` paints everything, `off` nothing. */
+export type Mode = "on" | "off"
 
 export const DEFAULT_MODE: Mode = "on"
 
@@ -34,7 +34,7 @@ export type ModeCommand =
 
 /**
  * Read the arguments of `/md-prompt`. Nothing (or `status`) asks for the state; `toggle` flips
- * between off and on, so from `code` it turns off. `vba` / `history` `on | off | toggle` set the
+ * it. `vba` / `history` `on | off | toggle` set the
  * fork's settings, and either word alone asks for that setting.
  */
 export function parseModeCommand(args: string, current: Mode, flags: Flags = DEFAULT_FLAGS): ModeCommand {
@@ -65,8 +65,6 @@ export function parseModeCommand(args: string, current: Mode, flags: Flags = DEF
     case "on":
     case "all":
       return { kind: "set", mode: "on" }
-    case "code":
-      return { kind: "set", mode: "code" }
     case "off":
       return { kind: "set", mode: "off" }
     case "toggle":
@@ -76,9 +74,9 @@ export function parseModeCommand(args: string, current: Mode, flags: Flags = DEF
   }
 }
 
-/** The mode a setting value names; anything unrecognised (or absent) is the default. */
+/** The mode the `enabled` setting names; anything but a boolean (or absent) is the default. */
 export function readMode(value: unknown): Mode {
-  return value === "on" || value === "code" || value === "off" ? value : DEFAULT_MODE
+  return value === true ? "on" : value === false ? "off" : DEFAULT_MODE
 }
 
 /** The VBA setting a value names; anything unrecognised (or absent) is the default. */
@@ -107,14 +105,12 @@ export function describeFlag(name: Flag, value: OnOff): string {
   return name === "vba" ? describeVba(value) : describeHistory(value)
 }
 
-const USAGE = "/md-prompt on | code | off | toggle\n/md-prompt vba on | off | toggle\n/md-prompt history on | off | toggle"
+const USAGE = "/md-prompt on | off | toggle\n/md-prompt vba on | off | toggle\n/md-prompt history on | off | toggle"
 
 export function describeMode(mode: Mode): string {
   switch (mode) {
     case "on":
       return "on — code, emphasis, links, headings, lists, tables and quotes are painted"
-    case "code":
-      return "code only — fenced, indented and inline code are painted"
     case "off":
       return "off — the prompt box is left as plain text"
   }
@@ -132,5 +128,5 @@ export function formatUsage(input: string): string {
 /** The decorations `mode` paints over `text`; none when off. `vba` turns the fork's VBA detection on. */
 export function paintFor(mode: Mode, text: string, vba: VbaAuto = "off"): Decoration[] {
   if (mode === "off") return []
-  return decorateMarkdown(text, { codeOnly: mode === "code", autoVba: vba === "on" })
+  return decorateMarkdown(text, { autoVba: vba === "on" })
 }
